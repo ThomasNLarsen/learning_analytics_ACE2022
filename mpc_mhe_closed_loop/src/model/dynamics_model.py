@@ -13,7 +13,7 @@ def decay(x, T, T_min, T_max):
     '''
     Decay the knowledge in each skill wrt. the size of the timestep, T.
     '''
-    alpha = 0.001  # HYPERPARAMETER: decay rate
+    alpha = 0.01  # HYPERPARAMETER: decay rate
     return np.exp(-alpha*T) * x  # np.exp(alpha*T) * x
     #return 0.9*x
 
@@ -25,7 +25,7 @@ def potential_improvement(x, w, h):
     '''
     # TODO: THIS FACTOR HAS A VERY NARROW BAND
     beta = 0.1  # HYPERPARAMETER: minimal improvement --- |h - x| = 1 --- beta*epsilon/(beta + 1) = constant
-    epsilon = 0.1  # HYPERPARAMETER: potential improvement --- |h - x| = 0 --- beta*epsilon/(beta + 0) = epsilon
+    epsilon = 0.2  # HYPERPARAMETER: potential improvement --- |h - x| = 0 --- beta*epsilon/(beta + 0) = epsilon
     #return w * (beta * epsilon) / (beta + norm_1(h - x))
     return w * (beta * epsilon) / (beta + fabs(h - x))
 
@@ -224,16 +224,28 @@ def dynamics_model(S, C, K):
 
     # Introduce new states, inputs and other variables to the model, e.g.:
     x = model.set_variable(var_type='_x', var_name='x', shape=(K,1))
-    w = model.set_variable(var_type='_u', var_name='w', shape=(K,1))
+    days = model.set_variable(var_type='_x', var_name='days')
+    T_total = model.set_variable(var_type='_x', var_name='T_total')
+    # inputs
     h = model.set_variable(var_type='_u', var_name='h', shape=(K,1))
     T = model.set_variable(var_type='_u', var_name='T')
-    T_total = model.set_variable(var_type='_x', var_name='T_total')
+    # algebric
+    w = model.set_variable(var_type='_z', var_name='w', shape=(K,1))
+    scheduling = model.set_variable(var_type='_z', var_name='scheduling', shape=(K,1))
+    #n_involved_skills = model.set_variable(var_type='_z', var_name='n_involved_skills')
+
 
     # Set right-hand-side of ODE for all introduced states (_x).
     # Names are inherited from the state definition.
     x_next = _rhs(x, [w, h, T])  # expected params: x, u -- u = [w, h, T] (4x1, 4x1, 1)
-    model.set_rhs('x', x_next)
-    model.set_rhs('T_total', T_total + T)
+    model.set_rhs('x', x_next, process_noise=True)
+    model.set_rhs('T_total', T_total + T, process_noise=False)
+    model.set_rhs('days', days + 1, process_noise=False)
+
+    # Algebric expressions
+    model.set_alg('w', w - (h>0))
+    model.set_alg('scheduling', scheduling - (h - logic_or(logic_or(mod(days, 7) == 0, mod(days, 7) == 2), mod(days, 7) == 4)))
+    #model.set_alg('n_involved_skills', n_involved_skills - sum1(w))
 
     # Task complexity limit: 3 skills per task:
     #model.set_alg(expr_name='complexity_limit', expr=sum1(w))
@@ -250,12 +262,16 @@ def dynamics_model(S, C, K):
     model.set_expression(expr_name='compl', expr=complements(x, w))
     model.set_expression(expr_name='time_factor', expr=time_factor(T, T_min, T_max))
     model.set_expression(expr_name='performance', expr=performance(x, h, w))
+    # model.set_expression(expr_name='skills_involved', expr=sum1(w))
 
     # Time-limit
 
     # Input measurements
-    #u_meas = model.set_meas('u_meas', h, meas_noise=False)
-    #y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
+    h_meas = model.set_meas('h_meas', h, meas_noise=False)
+    T_meas = model.set_meas('T_meas', T, meas_noise=False)
+    y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
+    days_meas = model.set_meas('days_meas', days, meas_noise=False)
+    T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
 
     # Setup model:
     model.setup()

@@ -1,4 +1,5 @@
 import do_mpc
+import numpy as np
 
 # Configure the MPC controller
 def mpc_controller(model):
@@ -8,7 +9,7 @@ def mpc_controller(model):
 
     # Set parameters:
     setup_mpc = {
-        'n_horizon': 5,
+        'n_horizon': 7,
         't_step': 1,
         'n_robust': 0,
         'state_discretization': 'discrete',
@@ -32,14 +33,25 @@ def mpc_controller(model):
     mpc.bounds['upper', '_x', 'T_total'] = 800
 
     # Lower bounds on inputs:
-    mpc.bounds['lower', '_u', 'w'] = 0
+    # mpc.bounds['lower', '_u', 'w'] = 0
     mpc.bounds['lower', '_u', 'h'] = 0
-    mpc.bounds['lower', '_u', 'T'] = 10
+    mpc.bounds['lower', '_u', 'T'] = 0.5
 
     # Upper bounds on inputs:
-    mpc.bounds['upper', '_u', 'w'] = 1
+    # mpc.bounds['upper', '_u', 'w'] = 1
     mpc.bounds['upper', '_u', 'h'] = 1
-    mpc.bounds['upper', '_u', 'T'] = 100
+    mpc.bounds['upper', '_u', 'T'] = 3
+
+    mpc.bounds['upper', '_z', 'scheduling'] = 0
+    #mpc.bounds['lower', '_z', 'scheduling'] = -1
+
+    #mpc.bounds['upper', '_z', 'n_involved_skills'] = 3
+    # Terminal bounds
+    # mpc.terminal_bounds['lower', 'T_total'] = 12
+    # mpc.terminal_bounds['upper', 'T_total'] = 12
+
+    #mpc.set_nl_cons('max_skill',  model.aux['skills_involved'], ub=3.1, soft_constraint=True)
+
 
     mpc.setup()
 
