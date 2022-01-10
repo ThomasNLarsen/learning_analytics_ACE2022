@@ -35,7 +35,7 @@ def data_generation(plot=False):
 
     # questions shape: (2*C, K)
     # h = [nz, nz, nz, nz, nz, nz, nz, nz, nz]
-    # --> [nz, 0, nz, nz, 0, --||--]
+    # --> [nz, 0,  nz, nz, 0,  0,  0,  0,  0]
     mask = np.random.choice(a=[False, True], size=questions.shape, p=[.65, 1 - .65])
     questions = np.where(mask, 0, questions)
 

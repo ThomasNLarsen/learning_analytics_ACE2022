@@ -17,7 +17,7 @@ def mpc_controller(model):
     mpc.set_param(**setup_mpc)
 
     # Configure objective function:
-    lterm = -model.aux['cost_x']
+    lterm = model.aux['cost_w']
     mterm = -model.aux['cost_x']
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
@@ -32,12 +32,12 @@ def mpc_controller(model):
     mpc.bounds['upper', '_x', 'T_total'] = 800
 
     # Lower bounds on inputs:
-    mpc.bounds['lower', '_u', 'w'] = 0
+    #mpc.bounds['lower', '_u', 'w'] = 0
     mpc.bounds['lower', '_u', 'h'] = 0
     mpc.bounds['lower', '_u', 'T'] = 10
 
     # Upper bounds on inputs:
-    mpc.bounds['upper', '_u', 'w'] = 1
+    #mpc.bounds['upper', '_u', 'w'] = 1
     mpc.bounds['upper', '_u', 'h'] = 1
     mpc.bounds['upper', '_u', 'T'] = 100
 

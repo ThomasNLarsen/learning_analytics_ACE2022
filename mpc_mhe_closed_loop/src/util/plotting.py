@@ -59,7 +59,7 @@ def extract_data(path):
     #x_est = mhe_data['_x', 'x']
     x_est = sim_data['_x', 'x']
     x_true = sim_data['_x', 'x']
-    w = sim_data['_u', 'w']
+    #w = sim_data['_z', 'w']
     h = sim_data['_u', 'h']
     T = sim_data['_u', 'T']
     T_cumulative = sim_data['_x', 'T_total']
@@ -71,11 +71,11 @@ def extract_data(path):
     y_est = y_true
 
 
-    return _t, x_est, x_true, w, h, T, T_cumulative, h_optimal, y_true, y_est
+    return _t, x_est, x_true, h, T, T_cumulative, h_optimal, y_true, y_est
 
 def plotter(path, include_mpc_u=False):
     # Load data:
-    _t, x_est, x_true, w, h, T, T_cumulative, h_optimal, y_true, y_est = extract_data(path)
+    _t, x_est, x_true, h, T, T_cumulative, h_optimal, y_true, y_est = extract_data(path)
 
     _t = _t.flatten()
     n_skills = x_est.shape[1]
