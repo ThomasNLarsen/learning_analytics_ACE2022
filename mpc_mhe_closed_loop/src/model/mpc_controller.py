@@ -1,4 +1,5 @@
 import do_mpc
+from casadi import *
 
 # Configure the MPC controller
 def mpc_controller(model):
@@ -17,7 +18,7 @@ def mpc_controller(model):
     mpc.set_param(**setup_mpc)
 
     # Configure objective function:
-    lterm = model.aux['cost_w']
+    lterm = -model.aux['cost_x']  # model.aux['cost_w']
     mterm = -model.aux['cost_x']
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
@@ -29,7 +30,7 @@ def mpc_controller(model):
 
     # Upper bounds on states
     mpc.bounds['upper', '_x', 'x'] = 1
-    mpc.bounds['upper', '_x', 'T_total'] = 800
+    mpc.bounds['upper', '_x', 'T_total'] = 8000
 
     # Lower bounds on inputs:
     #mpc.bounds['lower', '_u', 'w'] = 0
@@ -40,6 +41,8 @@ def mpc_controller(model):
     #mpc.bounds['upper', '_u', 'w'] = 1
     mpc.bounds['upper', '_u', 'h'] = 1
     mpc.bounds['upper', '_u', 'T'] = 100
+
+    mpc.set_nl_cons('cons_name', sum1(model.aux['w']), 4, soft_constraint=True)
 
     mpc.setup()
 

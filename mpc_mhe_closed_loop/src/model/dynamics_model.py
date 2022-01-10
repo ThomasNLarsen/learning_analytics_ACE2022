@@ -125,7 +125,7 @@ def complements(x, w):
 
         For which, the horizontal "ladder steps" represents the skills that are complementary to each other.
     '''
-    gamma = 100  # HYPERPARAMETER: bonus learning from involving complementary skills
+    gamma = 50  # HYPERPARAMETER: bonus learning from involving complementary skills
                 # --- smaller gamma -> bigger factor
                 # --- bigger gamma  -> smaller factor
     #_C = np.array(
@@ -213,11 +213,6 @@ def _rhs(x, u):
 
     return x_next
 
-def cost_w(w):
-    n_w = sum1(if_else(w > 0, 1, 0))
-    c_w = if_else(n_w > 3, 100000000, 0)
-    return c_w
-
 def dynamics_model(S, C, K):
 # Obtain an instance of the do-mpc model class
     # and select time discretization:
@@ -261,9 +256,9 @@ def dynamics_model(S, C, K):
 
     # Time-limit
 
-    # Input measurements
-    #u_meas = model.set_meas('u_meas', h, meas_noise=False)
-    #y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
+    # Measurements
+    u_meas = model.set_meas('u_meas', h, meas_noise=False)
+    y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
 
     # Setup model:
     model.setup()
@@ -432,10 +427,10 @@ if __name__ == '__main__':
     ############################# decay(x, T, T_min, T_max):
     alpha = 0.001               # Decay rate --> affects all skills
     ############################# potential_improvement(x, a):
-    beta = 0.1                 # minimum improvement
+    beta = 0.1                  # minimum improvement
     epsilon = 0.1               # maximum (potential) improvement
     ############################# complements(x, w):
-    gamma = 100                  # inverse proportional scaling factor per complementary skill
+    gamma = 50                  # inverse proportional scaling factor per complementary skill
     ############################# time_factor(T, T_min, T_max):
     omega = 0.05                # scaling factor for spending more than the minimum amount of time per TLA.
 

@@ -55,6 +55,8 @@ if __name__ == '__main__':
     q_tracker = np.zeros((S, 2 * C), dtype=bool)
 
     if True:#not os.path.exists(result_path + result_filename + '.pkl'):
+        T_max = 800
+        T_cumulative = 0
         for k in range(80):
             # Find optimal question
             u0_tilde = mpc.make_step(x0)
@@ -63,6 +65,9 @@ if __name__ == '__main__':
             _h = u0_tilde[:K]     # [0.5, 0.2, 0, 0, 0, 0, 0, 0, 0]
             _T = u0_tilde[-1]        # 50
 
+            _h_threshold = np.sort(_h)[::-1][2]
+            _h[_h < _h_threshold] = 0
+            u0_tilde[:K] = _h
             # Select the question closest to optimal.
             #__w, __h, q_tracker = question_selector(_h, psi, ohm, 1, q_tracker)
 
@@ -88,6 +93,11 @@ if __name__ == '__main__':
             #x0 = mhe.make_step(y_next)
             x0 = estimator.make_step(y_next)
 
+            # Break if max time exceeded:
+            #T_cumulative += _T
+            #if T_cumulative >= T_max:
+            #    break
+
         # Plotting simulation data
         fig, ax, graphics = do_mpc.graphics.default_plot(sim.data, figsize=(9, 10))
         # sim_graphics.plot_results()
@@ -100,7 +110,7 @@ if __name__ == '__main__':
 
 
 
-
+    exit()
     '''
     Plotting the results
     '''

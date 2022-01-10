@@ -41,13 +41,18 @@ def mhe_estimator(model):
     # Set bounds for states, parameters, etc.
     mhe.bounds['lower','_x', 'x'] = 0.0
     mhe.bounds['upper','_x', 'x'] = 1.0
+    mhe.bounds['lower', '_x', 'T_total'] = 0
+    mhe.bounds['upper', '_x', 'T_total'] = 800
     #mhe.bounds['lower','_x', 'y'] = 0
     #mhe.bounds['upper','_x', 'y'] = 1
     mhe.bounds['lower','_u', 'u'] = 0.0
     mhe.bounds['upper','_u', 'u'] = 1.0
+    mhe.bounds['lower', '_u', 'T'] = 10
+    mhe.bounds['upper', '_u', 'T'] = 100
     # mhe.bounds['lower','_z', 'z'] = 0
     # mhe.bounds['upper','_z', 'z'] = 0.2
-
+    mhe.bounds['lower', '_y', 'performance'] = 0
+    mhe.bounds['upper', '_y', 'performance'] = 1
     # [Optional] Set measurement function.
     # Measurements are read from data object by default.
 
