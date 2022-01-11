@@ -258,7 +258,12 @@ def dynamics_model(S, C, K):
 
     # Measurements
     u_meas = model.set_meas('u_meas', h, meas_noise=False)
-    y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
+    #y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
+
+    # State measurements (just performance)
+    alpha = fmax(h - x,0)
+    model.set_expression(expr_name='y_meas', expr=sum1(1 - alpha) / K)
+    y_meas = model.set_meas('y_meas', sum1(1 - alpha) / K, meas_noise=True)
 
     # Setup model:
     model.setup()

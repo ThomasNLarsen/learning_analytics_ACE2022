@@ -24,7 +24,7 @@ if __name__ == '__main__':
     phi, psi, ohm = data_generation()  # students, questions, involvements
     model = dynamics_model(S, C, K)
     mpc = mpc_controller(model)
-    #mhe = mhe_estimator(model)
+    mhe = mhe_estimator(model)
     sim = simulator(model)
     estimator = do_mpc.estimator.StateFeedback(model)
 
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     # Initialize MPC, Sim and MHE
     mpc.x0 = x0
     sim.x0 = np.concatenate((x0_true, np.array([0])))
-    #mhe.x0 = x0
-    estimator.x0 = x0
+    mhe.x0 = x0
+    #estimator.x0 = x0
 
     # Set initial guess for MHE/MPC based on initial state.
     mpc.set_initial_guess()
@@ -65,9 +65,11 @@ if __name__ == '__main__':
             _h = u0_tilde[:K]     # [0.5, 0.2, 0, 0, 0, 0, 0, 0, 0]
             _T = u0_tilde[-1]        # 50
 
-            _h_threshold = np.sort(_h)[::-1][2]
-            _h[_h < _h_threshold] = 0
-            u0_tilde[:K] = _h
+            # Force max 3 skills involved (not working)
+            #_h_threshold = np.sort(_h)[::-1][2]
+            #_h[_h < _h_threshold] = 0
+            #u0_tilde[:K] = _h
+
             # Select the question closest to optimal.
             #__w, __h, q_tracker = question_selector(_h, psi, ohm, 1, q_tracker)
 
@@ -90,8 +92,8 @@ if __name__ == '__main__':
                                          #w0=0.05 * np.random.randn(model.n_w, 1))
 
             # Estimate the next knowledge status
-            #x0 = mhe.make_step(y_next)
-            x0 = estimator.make_step(y_next)
+            x0 = mhe.make_step(y_next)
+            #x0 = estimator.make_step(y_next)
 
             # Break if max time exceeded:
             #T_cumulative += _T
