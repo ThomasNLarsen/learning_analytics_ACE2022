@@ -3,7 +3,7 @@ import do_mpc
 from casadi import *
 import matplotlib.pyplot as plt
 
-S, C, K = 1, 1, 9
+S, C, K = 1, 1, 5
 
 T_min = 10
 T_max = 100
@@ -71,6 +71,7 @@ def prerequisite_deficiencies(x, w):
             [0, 0, 0, 0, 0, 0, 0, 0, 0]
         ]
     )
+    _P = _P[:K,:K]
     '''
         x*I^T           = 4x4 matrix, [
                                        [x_1, ..., x_4],
@@ -149,6 +150,7 @@ def complements(x, w):
             [0, 0, 0, 0, 0, 0, 0, 1, 0]
         ]
     )
+    _C = _C[:K,:K]
     n_C = _C.sum(axis=0)  # Get the number of complementing skills for each skill [0, 2, 1, 2]
 
     '''
@@ -182,8 +184,10 @@ def time_factor(T, T_min, T_max):
 
 
 def performance(x, h, w):
-    _y = 1 - norm_1(fmax(h - x, 0))/norm_1(w)  # + noise
-
+    alpha = fmax(h - x, 0)
+    #_y = 1 - norm_1(alpha)#/sum1(h > 0)  # + noise
+    # 
+    _y = sum1(1 - alpha) / K
     return _y
 
 
@@ -269,7 +273,7 @@ def dynamics_model(S, C, K):
     # Input measurements
     h_meas = model.set_meas('h_meas', h, meas_noise=False)
     T_meas = model.set_meas('T_meas', T, meas_noise=False)
-    y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
+    performance_meas = model.set_meas('performance_meas', performance(x, h, w), meas_noise=False)
     days_meas = model.set_meas('days_meas', days, meas_noise=False)
     T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
 

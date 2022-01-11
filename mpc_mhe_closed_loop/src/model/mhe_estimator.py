@@ -13,8 +13,9 @@ def mhe_estimator(model):
 
     # Set parameters:
     setup_mhe = {
-        'n_horizon': 5,
+        'n_horizon': 7,
         't_step': 1,
+        'store_full_solution': True,
         'meas_from_data': True,
     }
     mhe.set_param(**setup_mhe)
@@ -24,7 +25,7 @@ def mhe_estimator(model):
     # P_x[-1][-1] = 0
     # P_x[-2][-2] = 
     #P_p = 10*np.eye(1)                   # No Parameter weight
-    P_w = 0.5*np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
+    P_w = 0.05*np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
     # P_w[-1][-1] = 0
     # P_w[-2][-2] = 0
 
@@ -37,6 +38,11 @@ def mhe_estimator(model):
         n_steps = min(mhe.data._y.shape[0], mhe.n_horizon)
         for k in range(-n_steps,0):
             y_template['y_meas',k] = mhe.data._y[k]
+            # y_template['y_meas',k,'h_meas'] = mhe.data._y[k,:K]
+            # y_template['y_meas',k,'T_meas'] = mhe.data._y[k,K]
+            # y_template['y_meas',k,'y'] = mhe.data._y[k,K+1]
+            # y_template['y_meas',k,'days_meas'] = mhe.data._y[K+2]
+            # y_template['y_meas',k,'T_total_meas'] = mhe.data._y[K+3]
         return y_template
 
     mhe.set_y_fun(y_fun)
