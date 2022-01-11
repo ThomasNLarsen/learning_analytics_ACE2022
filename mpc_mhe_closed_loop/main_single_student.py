@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     # Initialize MPC, Sim and MHE
     mpc.x0 = x0
-    sim.x0 = np.concatenate((x0_true, np.array([0])))
+    sim.x0 = np.concatenate((x0_true, np.array([0,0])))
     mhe.x0 = x0
     #estimator.x0 = x0
 
@@ -120,4 +120,3 @@ if __name__ == '__main__':
     fig = plotter(result_path+result_filename+'.pkl', include_mpc_u=True)
     fig.write_image(result_path+result_filename+'.png')
     # See plotting.py
-

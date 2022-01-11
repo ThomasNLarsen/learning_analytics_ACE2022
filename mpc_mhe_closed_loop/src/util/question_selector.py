@@ -2,6 +2,7 @@ import os
 import sys
 import inspect
 import numpy as np
+from numpy.core.fromnumeric import argmax
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -40,9 +41,6 @@ def question_selector(u_tilde, questions, student_n, q_tracker):
             best_match = q
             best_match_idx = idx
 
-    if best_match is None:
-        print("NO MATCH FOUND; ALL Qs TAKEN")
-        exit()
     # Make this question "spent":
     q_tracker[student_n,best_match_idx] = True
     #q_tracker[best_match_idx] += 1
@@ -62,3 +60,49 @@ def benchmark2(psi, q_previous):
 
     # If there's no harder question, use the previous one:
     return q_previous
+
+def manual_scheduling(psi, q_prev):
+    P = np.array(
+        [
+            [0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 1, 1, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ]
+    )
+
+    P = P[:K,:K]
+    val_prev = np.sum(np.dot(P, q_prev))
+    questions = np.array([])
+    questions_idx = np.array([], dtype=int)
+    for i, q in enumerate(psi):
+        val = np.sum(np.dot(P, q))
+        questions = np.append(questions, val)
+        questions_idx = np.append(questions_idx, i)
+
+    valid_questions = questions[np.where(questions >= val_prev)]
+    valid_questions_idx = questions_idx[np.where(questions >= val_prev)]
+    valid_questions = valid_questions[np.where(valid_questions == valid_questions.min())]
+    valid_questions_idx = valid_questions_idx[np.where(valid_questions == valid_questions.min())]
+
+    print(valid_questions_idx)
+
+    questions = np.array([])
+    questions_idx = np.array([], dtype=int)
+
+    for i, q in enumerate(psi[valid_questions_idx]):
+        val = np.sum(q ** 2)
+        questions = np.append(questions, val)
+        questions_idx = np.append(questions_idx, i)
+    
+    print(argmax(questions))
+ 
+    return psi[questions_idx[np.argmax(questions)]]
+    
+
+

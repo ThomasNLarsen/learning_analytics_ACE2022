@@ -20,13 +20,12 @@ def mhe_estimator(model):
     }
     mhe.set_param(**setup_mhe)
 
-
     P_v = 0.2*np.diag(np.array([1]))      # No measurement output Noise # Confidence about the measure
-    P_x = np.eye(K+2)                     # State weight
+    P_x = 0.25*np.eye(K+2)                     # State weight
     # P_x[-1][-1] = 0
     # P_x[-2][-2] = 
     #P_p = 10*np.eye(1)                   # No Parameter weight
-    P_w = 0.05*np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
+    P_w = np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
     # P_w[-1][-1] = 0
     # P_w[-2][-2] = 0
 
@@ -68,6 +67,7 @@ def mhe_estimator(model):
     mhe.bounds['upper', '_u', 'T'] = 3
 
     mhe.bounds['upper', '_z', 'scheduling'] = 0
+
     # [Optional] Set measurement function.
     # Measurements are read from data object by default.
 

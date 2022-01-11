@@ -203,8 +203,8 @@ def _rhs(x, u):
     T_max = 100
 
     # Unpack model input to skill involvements (w), skill taxonomies (h), and time (T)
-    h, T = u
-    w = if_else(h > 0.05, 1, 0)
+    w, h, T = u
+
     #x_next = decay(x, T, T_min, T_max) \
     x_next = decay(x, T, T_min, T_max) \
              + potential_improvement(x, w, h) \
@@ -216,6 +216,7 @@ def _rhs(x, u):
     x_next = if_else(x_next > 1, 1, x_next)
 
     return x_next
+
 
 def dynamics_model(S, C, K):
 # Obtain an instance of the do-mpc model class
@@ -250,14 +251,11 @@ def dynamics_model(S, C, K):
     model.set_alg('scheduling', scheduling - (h - logic_or(logic_or(mod(days, 7) == 0, mod(days, 7) == 2), mod(days, 7) == 4)))
     #model.set_alg('n_involved_skills', n_involved_skills - sum1(w))
 
-
     # Task complexity limit: 3 skills per task:
     #model.set_alg(expr_name='complexity_limit', expr=sum1(w))
 
     # State and input monitoring expressions: (and for cost functions later)
-    w = model.set_expression(expr_name='w', expr=if_else(h > 0, 1, 0))
     model.set_expression(expr_name='cost_x', expr=sum1(fabs(x)))
-    model.set_expression(expr_name='cost_w', expr=fmax(0, sum1(w) - 3))
     #model.set_expression(expr_name='alpha', expr=fmax(1 - x/h, 0) * h)
     #model.set_expression(expr_name='delta_x', expr=fmax(gaussian(fmax(1 - x/h, 0) * h, (1-h)/2 * perturbate(), (1-x)/5), 0))
 
@@ -279,19 +277,10 @@ def dynamics_model(S, C, K):
     days_meas = model.set_meas('days_meas', days, meas_noise=False)
     T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
 
-
-    alpha = fmax(h - x,0)
-    model.set_expression(expr_name='y_meas', expr=sum1(1 - alpha) / K)
-    y_meas = model.set_meas('y_meas', sum1(1 - alpha) / K, meas_noise=False)
-
-    T_meas = model.set_meas('T_meas', T, meas_noise=False)
-    T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
-
     # Setup model:
     model.setup()
 
     return model
-
 
 
 # OLD (from numpy version)
@@ -413,12 +402,11 @@ def C_DAG(w):
 
 
 def random_TLA():
-    _w = np.random.randint(0, 2, size=9)
-    _h = np.random.uniform(size=9) * _w
+    _w = np.random.randint(0, 2, size=4)
+    _h = np.random.uniform(size=4) * _w
     _T = np.array([10 * np.random.randint(1, 11)])
 
-    #u = np.concatenate((_w, _h, _T))
-    u = np.concatenate((_h, _T))
+    u = np.concatenate((_w, _h, _T))
     return u[:, None]
 
 
@@ -426,25 +414,22 @@ def monotonically_increasing_TLA(x):
     _w = np.ones(K)
     #_h = (x.squeeze() + 0.1*(np.random.random() - 0.5)) * _w
     _h = x.squeeze() * _w
-    _h += abs(0.1 * (np.random.random()))
     _h = np.clip(_h, 0, 1)
     _T = np.array([55]) # * np.random.randint(1, 11)
-    #u = np.concatenate((_w, _h, _T))
-    u = np.concatenate((_h, _T))
+    u = np.concatenate((_w, _h, _T))
     return u[:, None]
 
 
 def constant_TLA():
-    #_w = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+    _w = np.array([0, 0, 0, 0])
     #_h = 0.1*np.ones(4) * _w
     #_h = np.array([0.2, 0.4, 0.6, 0.8])
-    _h = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+    _h = np.array([0, 0, 0, 0])
     _T = np.array([55])
     #_T = 10*np.ones(4)
     #return np.array([_w, _h]), _T
     #return np.array([_w, _h, _T])
-    #u = np.concatenate((_w, _h, _T))
-    u = np.concatenate((_h, _T))
+    u = np.concatenate((_w, _h, _T))
     return u[:, None]
 
 
@@ -454,7 +439,7 @@ if __name__ == '__main__':
     ############################# decay(x, T, T_min, T_max):
     alpha = 0.001               # Decay rate --> affects all skills
     ############################# potential_improvement(x, a):
-    beta = 0.1                  # minimum improvement
+    beta = 0.1                 # minimum improvement
     epsilon = 0.1               # maximum (potential) improvement
     ############################# complements(x, w):
     gamma = 50                  # inverse proportional scaling factor per complementary skill
@@ -475,8 +460,8 @@ if __name__ == '__main__':
     init_time = np.array([0.0])
     x0 = np.concatenate((init_skills, init_time))
     print("x0 =", x0)
-    #w = np.array([1, 1, 1, 1])           # Skill involvents for TLA
-    #print("w0 =", w)
+    w = np.array([1, 1, 1, 1])           # Skill involvents for TLA
+    print("w0 =", w)
     h = np.array([0.05, 0.05, 0.05, 0.05])   # Skill taxonomies for TLA
     print("h0 =", h)
     T = 10                               # MODEL INPUT 2: Time to spent on the TLA
@@ -484,14 +469,27 @@ if __name__ == '__main__':
     T_min = 10
     print("T, T_max, T_min =", T, T_max, T_min)
     print("##########################\n")
+    '''
+    print("# MODEL DYNAMICS FACTORS #")
+    print("( deficiency =", np.abs(h - x), ")")
+    print("decay =",                 decay(x, T, T_min, T_max))
+    print("potential improvement =", potential_improvement(x, w, h))
+    print("prerequisites factor =",  prerequisite_deficiencies(x, w))
+    print("complement factor =",     complements(x, w))
+    print("time factor =",           time_factor(T, T_min, T_max))
+    print("##########################\n")
 
-
+    print("###### STATE CHANGE ######")
+    print("x_old =", x)
+    print("X_next =", _rhs(x, [w, h, T]))
+    print("##########################\n\n\n")
+    '''
 
     print("\nINIT MODEL ... ", end="")
     model = dynamics_model(1, 1, K)
     print("SUCCESS\n")
 
-     # Initialize simulator
+     # Initialize simualtor
     sim = do_mpc.simulator.Simulator(model)
     sim.set_param(t_step=1)
     sim.setup()
@@ -500,17 +498,15 @@ if __name__ == '__main__':
 
     # Run the simulator
     for i in range(50):
-        skills = x0[:K]
+        skills = x0[:-1]
         time = x0[-1]
         u0 = monotonically_increasing_TLA(skills)
         #u0 = constant_TLA()
         #u0 = random_TLA()
         x0 = sim.make_step(u0)
 
-        #w0 = u0[:K]
-        #h0 = u0[K:-2]
-        #T0 = u0[-1]
-        h0 = u0[:K]
+        w0 = u0[:K]
+        h0 = u0[K:-2]
         T0 = u0[-1]
 
 
@@ -523,48 +519,17 @@ if __name__ == '__main__':
     graphics.plot_results()
     #ax[0].set_ylim(0.0, 1.1)
     plt.show()
-    exit()
 
     # Plotting simualtion data -- offset to differentiate between each skill.
-    _x = sim.data['_x'][:, :-1]
+    _x = sim.data['_x'][:-1]
     offset = [0.1*i for i in range(K)]
-    #offset.append(0)
     _x += offset
     _t = np.ones((50, K))
-    #labels = ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8', 'x9', 'Time Cumulative']
-    labels = ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8', 'x9']
+    labels = ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8', 'x9', 'Time Cumulative']
     for i in range(50):
         _t[i, :] += i
     plt.plot(_t, _x, label=labels)
     plt.title("Skill knowledges, labeled and offset from each other for visual clarity")
-    plt.legend(loc="lower right")
-    plt.show()
-
-    # Plotting input data
-    _u = sim.data['_u'][:, :-1]
-    #offset = [0.1 * i for i in range(K)]
-    # offset.append(0)
-    #_u += offset
-    _t = np.ones((50, K))
-    labels = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9']
-    for i in range(50):
-        _t[i, :] += i
-    plt.plot(_t, _u, label=labels)
-    plt.title("Inputs")
-    plt.legend(loc="lower right")
-    plt.show()
-
-    # Plotting time input
-    _u = sim.data['_u'][:, -1]
-    # offset = [0.1 * i for i in range(K)]
-    # offset.append(0)
-    # _u += offset
-    _t = np.ones((50, 1))
-    labels = ['T']
-    for i in range(50):
-        _t[i, :] += i
-    plt.plot(_t, _u, label=labels)
-    plt.title("Inputs, time")
     plt.legend(loc="lower right")
     plt.show()
     exit()

@@ -33,12 +33,11 @@ def data_generation(plot=False):
         )
     ).reshape(-1, K)
 
-    # Limiting the skill involvements to max 3:
+    # Forcing only 3 skills per question (not working with MPC)
     # h = [nz, nz, nz, nz, nz, nz, nz, nz, nz]
-    # --> [nz, 0,  nz, nz, 0,  0,  0,  0,  0]
+    # --> [nz, 0, nz, nz, 0, --||--]
     #mask = np.random.choice(a=[False, True], size=questions.shape, p=[.65, 1 - .65])
     #questions = np.where(mask, 0, questions)
-
 
     bins = np.arange(0, 1.1, 0.1)
     psi = np.array([])
@@ -54,7 +53,7 @@ def data_generation(plot=False):
         sns.histplot(psi)
 
     print("data_generation() constructed student data with shape {} and questions data with shape {}".format(students.shape, questions.shape))
-    return students, psi.reshape(-1, K), #phi.reshape(-1,K)
+    return students, psi.reshape(-1, K) #phi.reshape(-1,K)
 
 # # APPROACH 2 -- Generate Performance Matrix Y (S x C) and use MF to find students, questions
 # def data_generation(plot=False):

@@ -1,7 +1,6 @@
 import do_mpc
 import numpy as np
 
-
 # Configure the MPC controller
 def mpc_controller(model):
     # Obtain an instance of the do-mpc MPC class
@@ -19,7 +18,7 @@ def mpc_controller(model):
     mpc.set_param(**setup_mpc)
 
     # Configure objective function:
-    lterm = -model.aux['cost_x']  # model.aux['cost_w']
+    lterm = -model.aux['cost_x']
     mterm = -model.aux['cost_x']
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
@@ -31,7 +30,7 @@ def mpc_controller(model):
 
     # Upper bounds on states
     mpc.bounds['upper', '_x', 'x'] = 1
-    mpc.bounds['upper', '_x', 'T_total'] = 8000
+    mpc.bounds['upper', '_x', 'T_total'] = 800
 
     # Lower bounds on inputs:
     # mpc.bounds['lower', '_u', 'w'] = 0
@@ -53,8 +52,6 @@ def mpc_controller(model):
 
     #mpc.set_nl_cons('max_skill',  model.aux['skills_involved'], ub=3.1, soft_constraint=True)
 
-
-    #mpc.set_nl_cons('cons_name', sum1(model.aux['w']), 4, soft_constraint=True)
 
     mpc.setup()
 
