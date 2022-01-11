@@ -13,16 +13,22 @@ def mhe_estimator(model):
 
     # Set parameters:
     setup_mhe = {
-        'n_horizon': 5,
+        'n_horizon': 7,
         't_step': 1,
+        'store_full_solution': True,
         'meas_from_data': True,
     }
     mhe.set_param(**setup_mhe)
 
-    P_v = 0.2*np.diag(np.array([1]))   # No measurement output Noise # Confidence about the measure
-    P_x = np.eye(K+1)                 # State weight
-    #P_p = 10*np.eye(1)               # No Parameter weight
-    P_w = 0.5*np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
+
+    P_v = 0.2*np.diag(np.array([1]))      # No measurement output Noise # Confidence about the measure
+    P_x = np.eye(K+2)                     # State weight
+    # P_x[-1][-1] = 0
+    # P_x[-2][-2] = 
+    #P_p = 10*np.eye(1)                   # No Parameter weight
+    P_w = 0.05*np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
+    # P_w[-1][-1] = 0
+    # P_w[-2][-2] = 0
 
     mhe.set_default_objective(P_x, None, None, P_w)
 
@@ -33,26 +39,35 @@ def mhe_estimator(model):
         n_steps = min(mhe.data._y.shape[0], mhe.n_horizon)
         for k in range(-n_steps,0):
             y_template['y_meas',k] = mhe.data._y[k]
+            # y_template['y_meas',k,'h_meas'] = mhe.data._y[k,:K]
+            # y_template['y_meas',k,'T_meas'] = mhe.data._y[k,K]
+            # y_template['y_meas',k,'y'] = mhe.data._y[k,K+1]
+            # y_template['y_meas',k,'days_meas'] = mhe.data._y[K+2]
+            # y_template['y_meas',k,'T_total_meas'] = mhe.data._y[K+3]
         return y_template
 
     mhe.set_y_fun(y_fun)
 
 
-    # Set bounds for states, parameters, etc.
-    mhe.bounds['lower','_x', 'x'] = 0.0
-    mhe.bounds['upper','_x', 'x'] = 1.0
+     # Lower bounds on states:
+    mhe.bounds['lower', '_x', 'x'] = 0
     mhe.bounds['lower', '_x', 'T_total'] = 0
+
+    # Upper bounds on states
+    mhe.bounds['upper', '_x', 'x'] = 1
     mhe.bounds['upper', '_x', 'T_total'] = 800
-    #mhe.bounds['lower','_x', 'y'] = 0
-    #mhe.bounds['upper','_x', 'y'] = 1
-    mhe.bounds['lower','_u', 'h'] = 0.0
-    mhe.bounds['upper','_u', 'h'] = 1.0
-    mhe.bounds['lower', '_u', 'T'] = 10
-    mhe.bounds['upper', '_u', 'T'] = 100
-    # mhe.bounds['lower','_z', 'z'] = 0
-    # mhe.bounds['upper','_z', 'z'] = 0.2
-    #mhe.bounds['lower', '_y', 'performance'] = 0
-    #mhe.bounds['upper', '_y', 'performance'] = 1
+
+    # Lower bounds on inputs:
+    # mpc.bounds['lower', '_u', 'w'] = 0
+    mhe.bounds['lower', '_u', 'h'] = 0
+    mhe.bounds['lower', '_u', 'T'] = 0.5
+
+    # Upper bounds on inputs:
+    # mpc.bounds['upper', '_u', 'w'] = 1
+    mhe.bounds['upper', '_u', 'h'] = 1
+    mhe.bounds['upper', '_u', 'T'] = 3
+
+    mhe.bounds['upper', '_z', 'scheduling'] = 0
     # [Optional] Set measurement function.
     # Measurements are read from data object by default.
 
