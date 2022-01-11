@@ -21,11 +21,11 @@ if __name__ == '__main__':
     np.random.seed(seed=42)
     # Obtain all configured modules and run the loop
 
-    phi, psi, ohm = data_generation()  # students, questions, involvements
+    phi, psi = data_generation()  # students, questions, involvements
     model = dynamics_model(S, C, K)
     mpc = mpc_controller(model)
-    #mhe = mhe_estimator(model)
-    simulator = simulator(model)
+    mhe = mhe_estimator(model)
+    sim = simulator(model)
     estimator = do_mpc.estimator.StateFeedback(model)
 
     ''' Use different initial state for the true system (simulator) and for MHE / MPC '''
@@ -34,13 +34,13 @@ if __name__ == '__main__':
 
     # Initialize MPC, Sim and MHE
     mpc.x0 = x0
-    simulator.x0 = np.concatenate((x0_true, np.array([0])))
-    #mhe.x0 = x0
-    estimator.x0 = x0
+    sim.x0 = np.concatenate((x0_true, np.array([0])))
+    mhe.x0 = x0
+    #estimator.x0 = x0
 
     # Set initial guess for MHE/MPC based on initial state.
     mpc.set_initial_guess()
-    #mhe.set_initial_guess()
+    mhe.set_initial_guess()
 
     """
     Run MPC main loop:
@@ -55,45 +55,65 @@ if __name__ == '__main__':
     q_tracker = np.zeros((S, 2 * C), dtype=bool)
 
     if True:#not os.path.exists(result_path + result_filename + '.pkl'):
-        for k in range(20):
+        T_max = 800
+        T_cumulative = 0
+        for k in range(50):
             # Find optimal question
             u0_tilde = mpc.make_step(x0)
 
-            _w = u0_tilde[:K]        # [1,   1,   0, 0, 0, 0, 0, 0, 0]
-            _h = u0_tilde[K:2*K]     # [0.5, 0.2, 0, 0, 0, 0, 0, 0, 0]
+            #_w = u0_tilde[:K]        # [1,   1,   0, 0, 0, 0, 0, 0, 0]
+            _h = u0_tilde[:K]     # [0.5, 0.2, 0, 0, 0, 0, 0, 0, 0]
             _T = u0_tilde[-1]        # 50
 
-            # Select the question closest to optimal.
-            __w, __h, q_tracker = question_selector(_h, psi, ohm, 1, q_tracker)
+            # Force max 3 skills involved (not working)
+            #_h_threshold = np.sort(_h)[::-1][2]
+            #_h[_h < _h_threshold] = 0
+            #u0_tilde[:K] = _h
 
-            print("w:", __w)
-            print("h:", __h)
-            print("T:", _T)
-            u0 = np.concatenate((__w, __h, _T), axis=0)[:, np.newaxis]
+            # Select the question closest to optimal.
+            __h, q_tracker = question_selector(_h, psi, 1, q_tracker)
+            u0_tilde = np.concatenate((__h, _T))[:, np.newaxis]
+            #print("w:", __w)
+            #print("h:", __h)
+            #print("T:", _T)
+            #u0 = np.concatenate((__w, __h, _T), axis=0)[:, np.newaxis]
+            #u0 = np.concatenate((__h, _T), axis=0)[:, np.newaxis]
 
             ## Benchmark 1: Random selection
             #u0 = benchmark1(psi)
 
             ## Benchmark 2: Monotonically increasing
             #u0 = benchmark2(psi, q_previous)
-            q_previous = u0
+            q_previous = u0_tilde
             # Simulate with process and measurement noise
-            x_prev = simulator.x0
-            y_next = simulator.make_step(u0,
-                                         v0=0.01 * np.random.randn(model.n_v, 1),
-                                         w0=0.05 * np.random.randn(model.n_w, 1))
+            x_prev = sim.x0
+            y_next = sim.make_step(u0_tilde,
+                                   w0=0.01 * np.random.randn(model.n_w, 1))
+                                         #v0=0.01 * np.random.randn(model.n_v, 1),
+
 
             # Estimate the next knowledge status
-            #x0 = mhe.make_step(y_next)
-            x0 = estimator.make_step(y_next)
+            x0 = mhe.make_step(y_next)
+            #x0 = estimator.make_step(y_next)
 
+            # Break if max time exceeded:
+            #T_cumulative += _T
+            #if T_cumulative >= T_max:
+            #    break
+
+        # Plotting simulation data
+        fig, ax, graphics = do_mpc.graphics.default_plot(sim.data, figsize=(9, 10))
+        # sim_graphics.plot_results()
+        graphics.plot_results()
+        # ax[0].set_ylim(0.0, 1.1)
+        plt.show()
 
         #save_dict(data_dict)
-        do_mpc.data.save_results([simulator, mpc, estimator], result_name=result_filename, result_path=result_path, overwrite=True)
+        do_mpc.data.save_results([sim, mpc, estimator], result_name=result_filename, result_path=result_path, overwrite=True)
 
 
 
-
+    exit()
     '''
     Plotting the results
     '''
