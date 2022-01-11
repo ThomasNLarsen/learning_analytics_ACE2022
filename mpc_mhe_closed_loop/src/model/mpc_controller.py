@@ -42,7 +42,7 @@ def mpc_controller(model):
     mpc.bounds['upper', '_u', 'h'] = 1
     mpc.bounds['upper', '_u', 'T'] = 100
 
-    mpc.set_nl_cons('cons_name', sum1(model.aux['w']), 4, soft_constraint=True)
+    #mpc.set_nl_cons('cons_name', sum1(model.aux['w']), 4, soft_constraint=True)
 
     mpc.setup()
 

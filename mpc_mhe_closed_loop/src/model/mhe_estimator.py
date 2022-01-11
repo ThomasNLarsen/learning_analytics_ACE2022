@@ -20,11 +20,11 @@ def mhe_estimator(model):
     mhe.set_param(**setup_mhe)
 
     P_v = 0.2*np.diag(np.array([1]))   # No measurement output Noise # Confidence about the measure
-    P_x = np.eye(K)                 # State weight
+    P_x = np.eye(K+1)                 # State weight
     #P_p = 10*np.eye(1)               # No Parameter weight
     P_w = 0.5*np.eye(K)                 # Process Noise (both on x and y) # Confidence about the process
 
-    mhe.set_default_objective(P_x, P_v, None, P_w)
+    mhe.set_default_objective(P_x, None, None, P_w)
 
     # Measurement function:
     y_template = mhe.get_y_template()
@@ -45,14 +45,14 @@ def mhe_estimator(model):
     mhe.bounds['upper', '_x', 'T_total'] = 800
     #mhe.bounds['lower','_x', 'y'] = 0
     #mhe.bounds['upper','_x', 'y'] = 1
-    mhe.bounds['lower','_u', 'u'] = 0.0
-    mhe.bounds['upper','_u', 'u'] = 1.0
+    mhe.bounds['lower','_u', 'h'] = 0.0
+    mhe.bounds['upper','_u', 'h'] = 1.0
     mhe.bounds['lower', '_u', 'T'] = 10
     mhe.bounds['upper', '_u', 'T'] = 100
     # mhe.bounds['lower','_z', 'z'] = 0
     # mhe.bounds['upper','_z', 'z'] = 0.2
-    mhe.bounds['lower', '_y', 'performance'] = 0
-    mhe.bounds['upper', '_y', 'performance'] = 1
+    #mhe.bounds['lower', '_y', 'performance'] = 0
+    #mhe.bounds['upper', '_y', 'performance'] = 1
     # [Optional] Set measurement function.
     # Measurements are read from data object by default.
 

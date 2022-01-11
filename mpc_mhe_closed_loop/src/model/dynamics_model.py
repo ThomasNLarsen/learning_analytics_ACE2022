@@ -231,7 +231,7 @@ def dynamics_model(S, C, K):
     # Set right-hand-side of ODE for all introduced states (_x).
     # Names are inherited from the state definition.
     x_next = _rhs(x, [h, T])  # expected params: x, u -- u = [w, h, T] (4x1, 4x1, 1)
-    model.set_rhs('x', x_next)
+    model.set_rhs('x', x_next, process_noise=True)
     model.set_rhs('T_total', T_total + T)
     #model.set_rhs('w', if_else(h > 0, 1, 0))
 
@@ -260,10 +260,12 @@ def dynamics_model(S, C, K):
     u_meas = model.set_meas('u_meas', h, meas_noise=False)
     #y_meas = model.set_meas('y', performance(x, h, w), meas_noise=False)
 
-    # State measurements (just performance)
     alpha = fmax(h - x,0)
     model.set_expression(expr_name='y_meas', expr=sum1(1 - alpha) / K)
-    y_meas = model.set_meas('y_meas', sum1(1 - alpha) / K, meas_noise=True)
+    y_meas = model.set_meas('y_meas', sum1(1 - alpha) / K, meas_noise=False)
+
+    T_meas = model.set_meas('T_meas', T, meas_noise=False)
+    T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
 
     # Setup model:
     model.setup()

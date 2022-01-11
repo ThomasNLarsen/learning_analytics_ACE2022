@@ -15,7 +15,7 @@ from src.util.distance_metrics import Similarity
 # Need: SxC boolean masking matrix. Init False, flip entries to True as questions are being asked.
 #q_tracker = np.zeros((S,C), dtype=bool)
 #q_tracker = np.zeros((S,C), dtype=int)
-def question_selector(u_tilde, questions, involvements, student_n, q_tracker):
+def question_selector(u_tilde, questions, student_n, q_tracker):
     # Library of different similarity metrics to explore
     similarity_metrics = Similarity(minimum=1e-20)
 
@@ -40,12 +40,14 @@ def question_selector(u_tilde, questions, involvements, student_n, q_tracker):
             best_match = q
             best_match_idx = idx
 
+    if best_match is None:
+        print("NO MATCH FOUND; ALL Qs TAKEN")
+        exit()
     # Make this question "spent":
     q_tracker[student_n,best_match_idx] = True
     #q_tracker[best_match_idx] += 1
-    w = involvements[best_match_idx]
 
-    return w, best_match.reshape(u_tilde.shape).squeeze(), q_tracker
+    return best_match.reshape(u_tilde.shape).squeeze(), q_tracker
 
 
 def benchmark1(psi):

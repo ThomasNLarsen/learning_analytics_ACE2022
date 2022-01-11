@@ -21,7 +21,7 @@ if __name__ == '__main__':
     np.random.seed(seed=42)
     # Obtain all configured modules and run the loop
 
-    phi, psi, ohm = data_generation()  # students, questions, involvements
+    phi, psi = data_generation()  # students, questions, involvements
     model = dynamics_model(S, C, K)
     mpc = mpc_controller(model)
     mhe = mhe_estimator(model)
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     # Set initial guess for MHE/MPC based on initial state.
     mpc.set_initial_guess()
-    #mhe.set_initial_guess()
+    mhe.set_initial_guess()
 
     """
     Run MPC main loop:
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     if True:#not os.path.exists(result_path + result_filename + '.pkl'):
         T_max = 800
         T_cumulative = 0
-        for k in range(80):
+        for k in range(50):
             # Find optimal question
             u0_tilde = mpc.make_step(x0)
 
@@ -71,8 +71,8 @@ if __name__ == '__main__':
             #u0_tilde[:K] = _h
 
             # Select the question closest to optimal.
-            #__w, __h, q_tracker = question_selector(_h, psi, ohm, 1, q_tracker)
-
+            __h, q_tracker = question_selector(_h, psi, 1, q_tracker)
+            u0_tilde = np.concatenate((__h, _T))[:, np.newaxis]
             #print("w:", __w)
             #print("h:", __h)
             #print("T:", _T)
@@ -87,9 +87,10 @@ if __name__ == '__main__':
             q_previous = u0_tilde
             # Simulate with process and measurement noise
             x_prev = sim.x0
-            y_next = sim.make_step(u0_tilde)#,
+            y_next = sim.make_step(u0_tilde,
+                                   w0=0.01 * np.random.randn(model.n_w, 1))
                                          #v0=0.01 * np.random.randn(model.n_v, 1),
-                                         #w0=0.05 * np.random.randn(model.n_w, 1))
+
 
             # Estimate the next knowledge status
             x0 = mhe.make_step(y_next)
