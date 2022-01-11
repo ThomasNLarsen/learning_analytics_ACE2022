@@ -32,14 +32,18 @@ def question_selector(u_tilde, questions, student_n, q_tracker):
             https://bib.dbvis.de/uploadedFiles/155.pdf
         '''
         # Calculate the question's similarity to the optimal solution:
-        q_diff = similarity_metrics.fractional_distance(q, u_tilde, fraction=0.5)
-        #q_diff = similarity_metrics.euclidean_distance(q, u_tilde)
+        #q_diff = similarity_metrics.fractional_distance(q, u_tilde, fraction=0.5)
+        q_diff = similarity_metrics.euclidean_distance(q, u_tilde)
 
         # Hold on to the temporary best match
         if q_diff < min_diff and not q_tracker[0,idx]:
             min_diff = q_diff
             best_match = q
             best_match_idx = idx
+
+        if best_match is None:
+            print("NO MATCH FOUND")
+            exit()
 
     # Make this question "spent":
     q_tracker[student_n,best_match_idx] = True
