@@ -13,7 +13,7 @@ def mhe_estimator(model):
 
     # Set parameters:
     setup_mhe = {
-        'n_horizon': 7,
+        'n_horizon': 5,
         't_step': 1,
         'store_full_solution': True,
         'meas_from_data': True,

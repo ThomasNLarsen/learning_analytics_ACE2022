@@ -9,7 +9,7 @@ def mpc_controller(model):
 
     # Set parameters:
     setup_mpc = {
-        'n_horizon': 7,
+        'n_horizon': 5,
         't_step': 1,
         'n_robust': 0,
         'state_discretization': 'discrete',
@@ -35,12 +35,12 @@ def mpc_controller(model):
     # Lower bounds on inputs:
     # mpc.bounds['lower', '_u', 'w'] = 0
     mpc.bounds['lower', '_u', 'h'] = 0
-    mpc.bounds['lower', '_u', 'T'] = 0.5
+    mpc.bounds['lower', '_u', 'T'] = 1.0
 
     # Upper bounds on inputs:
     # mpc.bounds['upper', '_u', 'w'] = 1
     mpc.bounds['upper', '_u', 'h'] = 1
-    mpc.bounds['upper', '_u', 'T'] = 3
+    mpc.bounds['upper', '_u', 'T'] = 3.0
 
     mpc.bounds['upper', '_z', 'scheduling'] = 0
     #mpc.bounds['lower', '_z', 'scheduling'] = -1

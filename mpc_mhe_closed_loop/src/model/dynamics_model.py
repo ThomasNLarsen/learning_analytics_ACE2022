@@ -24,7 +24,7 @@ def potential_improvement(x, w, h):
     for the skills involved in the task.
     '''
     # TODO: THIS FACTOR HAS A VERY NARROW BAND
-    beta = 0.1  # HYPERPARAMETER: minimal improvement --- |h - x| = 1 --- beta*epsilon/(beta + 1) = constant
+    beta = 0.2  # HYPERPARAMETER: minimal improvement --- |h - x| = 1 --- beta*epsilon/(beta + 1) = constant
     epsilon = 0.2  # HYPERPARAMETER: potential improvement --- |h - x| = 0 --- beta*epsilon/(beta + 0) = epsilon
     #return w * (beta * epsilon) / (beta + norm_1(h - x))
     return w * (beta * epsilon) / (beta + fabs(h - x))
