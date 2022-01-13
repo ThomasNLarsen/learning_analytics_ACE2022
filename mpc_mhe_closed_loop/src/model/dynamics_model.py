@@ -5,11 +5,8 @@ import matplotlib.pyplot as plt
 
 S, C, K = 1, 1, 5
 
-T_min = 10
-T_max = 100
-
 ### ELEMENTS OF MODEL DYNAMICS ###
-def decay(x, T, T_min, T_max):
+def decay(x, T):
     '''
     Decay the knowledge in each skill wrt. the size of the timestep, T.
     '''
@@ -199,18 +196,15 @@ def _rhs(x, u):
         h: skill taxonomy vector    --- 4x1
         T: time spent on this TLA   --- 1x1
     '''
-    T_min = 10
-    T_max = 100
 
     # Unpack model input to skill involvements (w), skill taxonomies (h), and time (T)
     w, h, T = u
 
-    #x_next = decay(x, T, T_min, T_max) \
-    x_next = decay(x, T, T_min, T_max) \
+    x_next = decay(x, T) \
              + potential_improvement(x, w, h) \
              * prerequisite_deficiencies(x, w) \
-             * complements(x, w) \
-             * time_factor(T, T_min, T_max)
+             * complements(x, w) #\
+             #* time_factor(T, T_min, T_max)
 
     # TODO: Clip knowledge between 0 and 1 with casadi or not?
     x_next = if_else(x_next > 1, 1, x_next)
@@ -229,11 +223,12 @@ def dynamics_model(S, C, K):
     # Introduce new states, inputs and other variables to the model, e.g.:
     x = model.set_variable(var_type='_x', var_name='x', shape=(K,1))
     days = model.set_variable(var_type='_x', var_name='days')
-    T_total = model.set_variable(var_type='_x', var_name='T_total')
+    #T_total = model.set_variable(var_type='_x', var_name='T_total')
     # inputs
     h = model.set_variable(var_type='_u', var_name='h', shape=(K,1))
-    T = model.set_variable(var_type='_u', var_name='T')
-    # algebric
+    #T = model.set_variable(var_type='_u', var_name='T')
+    T = model.set_variable(var_type='_z', var_name='T')
+    # algebraic
     w = model.set_variable(var_type='_z', var_name='w', shape=(K,1))
     scheduling = model.set_variable(var_type='_z', var_name='scheduling', shape=(K,1))
     #n_involved_skills = model.set_variable(var_type='_z', var_name='n_involved_skills')
@@ -243,28 +238,23 @@ def dynamics_model(S, C, K):
     # Names are inherited from the state definition.
     x_next = _rhs(x, [w, h, T])  # expected params: x, u -- u = [w, h, T] (4x1, 4x1, 1)
     model.set_rhs('x', x_next, process_noise=True)
-    model.set_rhs('T_total', T_total + T, process_noise=False)
+    #model.set_rhs('T_total', T_total + T, process_noise=False)
     model.set_rhs('days', days + 1, process_noise=False)
 
-    # Algebric expressions
+    # Algebraic expressions
     model.set_alg('w', w - (h>0))
+    model.set_alg('T', T - 2)
     model.set_alg('scheduling', scheduling - (h - logic_or(logic_or(mod(days, 7) == 0, mod(days, 7) == 2), mod(days, 7) == 4)))
-    #model.set_alg('n_involved_skills', n_involved_skills - sum1(w))
-
-    # Task complexity limit: 3 skills per task:
-    #model.set_alg(expr_name='complexity_limit', expr=sum1(w))
 
     # State and input monitoring expressions: (and for cost functions later)
     model.set_expression(expr_name='cost_x', expr=sum1(fabs(x)))
-    #model.set_expression(expr_name='alpha', expr=fmax(1 - x/h, 0) * h)
-    #model.set_expression(expr_name='delta_x', expr=fmax(gaussian(fmax(1 - x/h, 0) * h, (1-h)/2 * perturbate(), (1-x)/5), 0))
 
     # Monitoring expressions
-    model.set_expression(expr_name='decay', expr=x - decay(x, T, T_min, T_max))
+    model.set_expression(expr_name='decay', expr=x - decay(x, T))
     model.set_expression(expr_name='pot_impr', expr=potential_improvement(x, w, h))
     model.set_expression(expr_name='prereq', expr=prerequisite_deficiencies(x, w))
     model.set_expression(expr_name='compl', expr=complements(x, w))
-    model.set_expression(expr_name='time_factor', expr=time_factor(T, T_min, T_max))
+    #model.set_expression(expr_name='time_factor', expr=time_factor(T, T_min, T_max))
     model.set_expression(expr_name='performance', expr=performance(x, h, w))
     # model.set_expression(expr_name='skills_involved', expr=sum1(w))
 
@@ -272,133 +262,15 @@ def dynamics_model(S, C, K):
 
     # Input measurements
     h_meas = model.set_meas('h_meas', h, meas_noise=False)
-    T_meas = model.set_meas('T_meas', T, meas_noise=False)
+    #T_meas = model.set_meas('T_meas', T, meas_noise=False)
     performance_meas = model.set_meas('performance_meas', performance(x, h, w), meas_noise=False)
     days_meas = model.set_meas('days_meas', days, meas_noise=False)
-    T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
+    #T_total_meas = model.set_meas('T_total_meas', T_total, meas_noise=False)
 
     # Setup model:
     model.setup()
 
     return model
-
-
-# OLD (from numpy version)
-def P(w):
-    ''' FUNCTION:
-        Map w -> prerequisite skills in P (idxs vector) --> to find relevant skills in x
-
-        Ex:
-        w       = [1,   1,   0,   0]
-        x       = [0.5, 0.5, 0.5, 0.5]
-        factors = [1,   0.5, 1,   1]    --> i.e., skill 2 has skill 1 as prerequisite,
-                                                  in which the student is only 0.5 proficient in.
-                                                  The other skills are unaffected
-        |
-        Thus, this function should return the following list of lists:
-        |
-        map F(w, P) --> [[], [1], [], []], i.e., prerequisite skills for each skill involved in the TLA
-        return
-    '''
-    _P = np.array(
-        [
-            [0, 1, 1, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ]
-    )
-
-    # Zero out irrelevant columns in P
-    _P = _P * w
-    print(repr(_P))
-
-    # Get indexes of prerequisite skills in P, for each relevant skill in w.
-    p_idxs = []
-    for col in range(K):
-        p_idxs.append(np.argwhere(_P.T[col] > 0))
-
-    # Returns: the indexes for the skills that are prerequisite for the skills needed in this TLA
-    print(p_idxs)
-    return p_idxs
-
-
-# OLD (from numpy version)
-def C(w):
-    '''
-    FUNCTION:
-    Map w --> complementary skills in C (idxs vector) --> to find complementary skills in x
-    Ex:
-    w = [1,   1,   0,   0]
-    x = [0.5, 0.5, 0.5, 0.5]
-    factors = []
-    1: no complementary skills          --> factor = 1
-    2: skills 3 and 4 are complementary --> factor = (1 + x_3/gamma*n_compl) * (1 + x_4/gamma*n_compl)
-                                                   = (1 + 0.5/10*2) * (1 + 0.5 / 10*2)
-                                                   = 1.050625
-    3: not involved in TLA              --> factor = 1
-    4: not involved in TLA              --> factor = 1
-    |
-    |
-    Thus, this function should return the following list of indexes:
-    map F(w, C) --> [[], [2, 3], [], []], i.e., complementary skills for each skill involved in the TLA
-    '''
-    # From paper: column i describes what skills are complementary to skill i.
-    # Here, column 3 describes that skill 4 is complementary to skill 3.
-    _C = np.array(
-        [
-            [0, 0, 0, 0],
-            [0, 0, 0, 1],
-            [0, 1, 0, 1],
-            [0, 1, 1, 0]
-        ]
-    )
-
-    # Zero out irrelevant skills:
-    _C = _C * w
-
-    # Get indexes of complementary skills in C, for each relevant skill in w.
-    c_idxs = []
-    for col in _C.T:
-        c_idxs.append(np.argwhere(col > 0))
-
-    # Returns: the indexes for the skills that are prerequisite for the skills needed in this TLA
-    return c_idxs
-
-def P_DAG(w):
-    '''
-        Describes the prerequisites structure as an Acyclic Directed Graph (DAG), or a binary tree
-        We have:
-            9 skills total, for instance
-                                            Skill 1
-                                           /       \
-                                    Skill 2         Skill 3
-                                   /      \        /       \
-                            Skill 4   Skill 5   Skill 6    Skill 7
-                           /                                      \
-                       Skill 8                                  Skill 9
-
-        For which, Skill 1 is prerequisite to Skill 2 and Skill 3, and so on.
-            (Or the other way around? -- Skill 2 and 3 are prerequisite to Skill 1)
-    '''
-    return
-
-def C_DAG(w):
-    '''
-        Describes the complementary structure as a ladder overlaying the Acyclic Directed Graph (DAG)
-        We have, as before:
-            9 skills total,
-                                            Skill 1
-                                           /       \
-                                    Skill 2 ------- Skill 3
-                                   /      \        /       \
-                            Skill 4   Skill 5 -- Skill 6   Skill 7
-                           /                                      \
-                       Skill 8  ------------------------------  Skill 9
-
-        For which, the horizontal "ladder steps" represents the skills that are complementary to each other.
-    '''
-    return
 
 
 def random_TLA():

@@ -34,8 +34,6 @@ def question_selector(u_tilde, questions, student_n, q_tracker):
         # Calculate the question's similarity to the optimal solution:
         #q_diff = similarity_metrics.fractional_distance(q, u_tilde, fraction=0.5)
         q_diff = similarity_metrics.euclidean_distance(q, u_tilde)
-        print('Q diff: ' + str(q_diff))
-        print('Q idx: ' + str(idx))
 
         # Hold on to the temporary best match
         if q_diff < min_diff and not q_tracker[0,idx]:

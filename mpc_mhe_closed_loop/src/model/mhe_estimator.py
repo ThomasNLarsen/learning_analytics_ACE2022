@@ -13,7 +13,7 @@ def mhe_estimator(model):
 
     # Set parameters:
     setup_mhe = {
-        'n_horizon': 5,
+        'n_horizon': 10,
         't_step': 1,
         'store_full_solution': True,
         'meas_from_data': True,
@@ -21,7 +21,7 @@ def mhe_estimator(model):
     mhe.set_param(**setup_mhe)
 
     P_v = 0.2*np.diag(np.array([1]))      # No measurement output Noise # Confidence about the measure
-    P_x = 0.25*np.eye(K+2)                     # State weight
+    P_x = 0.25*np.eye(K+1)                     # State weight
     # P_x[-1][-1] = 0
     # P_x[-2][-2] = 
     #P_p = 10*np.eye(1)                   # No Parameter weight
@@ -50,21 +50,21 @@ def mhe_estimator(model):
 
      # Lower bounds on states:
     mhe.bounds['lower', '_x', 'x'] = 0
-    mhe.bounds['lower', '_x', 'T_total'] = 0
+    #mhe.bounds['lower', '_x', 'T_total'] = 0
 
     # Upper bounds on states
-    mhe.bounds['upper', '_x', 'x'] = 1
-    mhe.bounds['upper', '_x', 'T_total'] = 800
+    mhe.bounds['upper', '_x', 'x'] = 1.05
+    #mhe.bounds['upper', '_x', 'T_total'] = 800
 
     # Lower bounds on inputs:
     # mpc.bounds['lower', '_u', 'w'] = 0
     mhe.bounds['lower', '_u', 'h'] = 0
-    mhe.bounds['lower', '_u', 'T'] = 0.5
+    #mhe.bounds['lower', '_u', 'T'] = 0.5
 
     # Upper bounds on inputs:
     # mpc.bounds['upper', '_u', 'w'] = 1
     mhe.bounds['upper', '_u', 'h'] = 1
-    mhe.bounds['upper', '_u', 'T'] = 3
+    #mhe.bounds['upper', '_u', 'T'] = 3
 
     mhe.bounds['upper', '_z', 'scheduling'] = 0
 

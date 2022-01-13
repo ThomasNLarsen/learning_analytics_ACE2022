@@ -10,31 +10,69 @@ from src.model.simulator import simulator
 from src.util.question_selector import question_selector, benchmark1, benchmark2
 from src.util.constants import *
 
-from src.util.plotting import plotter
+#from src.util.plotting import plotter
 
 from casadi import lt
 
-# In the case that a dedicated estimator is required, another python file should be added to the project.
-# from estimator import estimator
+
+def tla_generation():
+    C1 = 0*np.eye(100, 5)
+    C1[:,0] = np.random.uniform(low=0.0, high=1.0, size=(len(C1),))
+    C1 = C1[C1[:,0].argsort()]
+    C2 = 0*np.eye(100, 5)
+    C2[:,:2] = np.random.uniform(low=0.0, high=1.0, size=(len(C1),2))
+    C2 = C2[C2[:,1].argsort()]
+    C3 = 0*np.eye(100, 5)
+    C3[:,:3] = np.random.uniform(low=0.0, high=1.0, size=(len(C1),3))
+    C3 = C3[C3[:,2].argsort()]
+    C4 = 0*np.eye(100, 5)
+    C4[:,:4] = np.random.uniform(low=0.0, high=1.0, size=(len(C1),4))
+    C4 = C4[C4[:,3].argsort()]
+    C5 = 0*np.eye(100, 5)
+    C5[:,:5] = np.random.uniform(low=0.0, high=1.0, size=(len(C1),5))
+    C5 = C5[C5[:,4].argsort()]
+    tla = np.concatenate((C1, C2, C3, C4, C5))
+    idx1 = np.sort(np.append(np.random.randint(100, size=4), 99))
+    idx2 = np.sort(np.append(np.random.randint(100, size=4), 99))
+    idx3 = np.sort(np.append(np.random.randint(100, size=4), 99))
+    idx4 = np.sort(np.append(np.random.randint(100, size=4), 99))
+    idx5 = np.sort(np.append(np.random.randint(100, size=4), 99))
+    scheduled_tla = 0*np.eye(32,5)
+    scheduled_tla[:5,:] = C1[idx1,:]
+    scheduled_tla[5:10,:] = C2[idx2,:]
+    scheduled_tla[10:15,:] = C3[idx3,:]
+    scheduled_tla[15:20,:] = C4[idx4,:]
+    scheduled_tla[20:25,:] = C5[idx5,:]
+    scheduled_tla[25:,:] = C5[np.random.randint(100, size=len(scheduled_tla[25:,:])),:]
+    return tla, scheduled_tla
+
 
 if __name__ == '__main__':
     np.random.seed(seed=42)
     # Obtain all configured modules and run the loop
 
-    phi, psi = data_generation()  # students, questions, involvements
+    phi, psi = data_generation()  # students, questions
+    tla, schedule_tla = tla_generation()
     model = dynamics_model(S, C, K)
     mpc = mpc_controller(model)
     mhe = mhe_estimator(model)
     sim = simulator(model)
-    estimator = do_mpc.estimator.StateFeedback(model)
+    #estimator = do_mpc.estimator.StateFeedback(model)
 
     ''' Use different initial state for the true system (simulator) and for MHE / MPC '''
-    x0_true = phi[4]
-    x0 = np.zeros(model.n_x).reshape((model.n_x, 1))                  # --> Shape = 10
+    x0_true = np.concatenate((phi[4], np.array([0])))
+
+    # MHE/MPC init x
+    x0 = np.zeros(model.n_x)
+    x0[0] = np.random.uniform(low=0.0, high=0.6)
+    x0[1] = np.random.uniform(low=0.0, high=x0[0])
+    x0[2] = np.random.uniform(low=0.0, high=x0[0])
+    x0[3] = np.random.uniform(low=0.0, high=x0[1])
+    x0[4] = np.random.uniform(low=0.0, high=x0[1])
 
     # Initialize MPC, Sim and MHE
     mpc.x0 = x0
-    sim.x0 = np.concatenate((x0_true, np.array([0,0])))
+    sim.x0 = x0_true
     mhe.x0 = x0
     #estimator.x0 = x0
 
@@ -47,76 +85,47 @@ if __name__ == '__main__':
     """
     import os
     result_path = './src/util/'
-    result_filename = 'results'
+    result_filename = 'results_main_single_student'
     #result_filename = 'results_benchmarkRandom'
     #result_filename = 'results_benchmarkIncreasing'
 
-    q_previous = x0_true
     q_tracker = np.zeros((S, 2 * C), dtype=bool)
-
+    #q_tracker = 0
     if True:#not os.path.exists(result_path + result_filename + '.pkl'):
-        T_max = 800
-        T_cumulative = 0
         for k in range(50):
             # Find optimal question
             u0_tilde = mpc.make_step(x0)
 
-            #_w = u0_tilde[:K]        # [1,   1,   0, 0, 0, 0, 0, 0, 0]
-            _h = u0_tilde[:K]     # [0.5, 0.2, 0, 0, 0, 0, 0, 0, 0]
-            _T = u0_tilde[-1]        # 50
-
-            # Force max 3 skills involved (not working)
-            #_h_threshold = np.sort(_h)[::-1][2]
-            #_h[_h < _h_threshold] = 0
-            #u0_tilde[:K] = _h
+            _h = u0_tilde#[:K]  # [ideal question difficulties]
+            _T = u0_tilde[-1]  # time usage
 
             # Select the question closest to optimal.
-            __h, q_tracker = question_selector(_h, psi, 1, q_tracker)
-            u0_tilde = np.concatenate((__h, _T))[:, np.newaxis]
-            #print("w:", __w)
-            #print("h:", __h)
-            #print("T:", _T)
-            #u0 = np.concatenate((__w, __h, _T), axis=0)[:, np.newaxis]
-            #u0 = np.concatenate((__h, _T), axis=0)[:, np.newaxis]
+            # Select the question closest to optimal.
+            if k % 7 == 0 or k % 7 == 2 or k % 7 == 4:
+                _h, q_tracker = question_selector(_h, tla, 0, q_tracker)
+                #_h = _h.squeeze()
+            else:
+                _h = np.zeros(K)
 
-            ## Benchmark 1: Random selection
-            #u0 = benchmark1(psi)
+            #u0 = np.concatenate((_h, _T))[:, np.newaxis]
+            u0 = _h[:, np.newaxis]
 
-            ## Benchmark 2: Monotonically increasing
-            #u0 = benchmark2(psi, q_previous)
-            q_previous = u0_tilde
             # Simulate with process and measurement noise
-            x_prev = sim.x0
-            y_next = sim.make_step(u0_tilde,
+            y_next = sim.make_step(u0,
+                                   # v0=0.01 * np.random.randn(model.n_v, 1),
                                    w0=0.01 * np.random.randn(model.n_w, 1))
-                                         #v0=0.01 * np.random.randn(model.n_v, 1),
-
 
             # Estimate the next knowledge status
             x0 = mhe.make_step(y_next)
-            #x0 = estimator.make_step(y_next)
 
-            # Break if max time exceeded:
-            #T_cumulative += _T
-            #if T_cumulative >= T_max:
-            #    break
 
         # Plotting simulation data
         fig, ax, graphics = do_mpc.graphics.default_plot(sim.data, figsize=(9, 10))
-        # sim_graphics.plot_results()
         graphics.plot_results()
-        # ax[0].set_ylim(0.0, 1.1)
         plt.show()
+        exit()
 
-        #save_dict(data_dict)
-        do_mpc.data.save_results([sim, mpc, estimator], result_name=result_filename, result_path=result_path, overwrite=True)
+        do_mpc.data.save_results([sim, mpc, mhe], result_name=result_filename, result_path=result_path, overwrite=True)
 
 
 
-    exit()
-    '''
-    Plotting the results
-    '''
-    fig = plotter(result_path+result_filename+'.pkl', include_mpc_u=True)
-    fig.write_image(result_path+result_filename+'.png')
-    # See plotting.py

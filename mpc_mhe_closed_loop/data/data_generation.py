@@ -12,6 +12,13 @@ sys.path.insert(0, parentdir)
 # S students, C contents, K skills in:
 from src.util.constants import *
 
+def average_student_x0():
+    lower, upper = 0, 1
+    s_mu, s_sigma = 0.25, 0.15  # Mean in 0.25 since assumed low initial skills level
+
+    students = stats.truncnorm.rvs((lower - s_mu) / s_sigma, (upper - s_mu) / s_sigma, loc=s_mu, scale=s_sigma,
+                                   size=(S, K))
+
 # APPROACH 1 -- Generate Students and Questions as independent variables
 def data_generation(plot=False):
     lower, upper = 0, 1
